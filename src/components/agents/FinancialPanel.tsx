@@ -8,15 +8,15 @@ export function FinancialPanel({ snapshot, liveScore }: FinancialPanelProps) {
   return (
     <AgentPanelBase
       icon={Landmark}
-      title="Financial"
+      title="Financiero"
       snapshotScore={snapshot.score}
       liveScore={liveScore}
       confidence={snapshot.confidence}
       alerts={snapshot.alerts}
       fields={[
-        { label: 'Total debt', value: `ARS ${new Intl.NumberFormat('es-AR').format(snapshot.data.totalDebt)}` },
-        { label: 'Delinquency status', value: `${snapshot.data.delinquencyStatus}` },
-        { label: 'Days overdue', value: `${snapshot.data.daysOverdue}` },
+        { label: 'Deuda total', value: `ARS ${new Intl.NumberFormat('es-AR').format(snapshot.data.totalDebt)}` },
+        { label: 'Estado de mora', value: `${snapshot.data.delinquencyStatus}` },
+        { label: 'Días de atraso', value: `${snapshot.data.daysOverdue}` },
       ]}
     />
   );

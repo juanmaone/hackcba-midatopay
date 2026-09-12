@@ -41,11 +41,11 @@ export const mockAssessmentResponse: AssessmentResponse = {
       alerts: [
         {
           level: 'warning',
-          message: 'Rainfall 12% below average',
+          message: 'Lluvia 12% por debajo del promedio',
           metric: 'rainfallAnomaly',
           value: -12,
           threshold: -10,
-          recommendation: 'Monitor irrigation needs closely',
+          recommendation: 'Monitorear de cerca las necesidades de riego',
         },
       ],
       sources: [{ provider: 'Open-Meteo', endpoint: '/v1/forecast', lastUpdated: TIMESTAMP, reliability: 0.9 }],
@@ -79,8 +79,8 @@ export const mockAssessmentResponse: AssessmentResponse = {
         clayContent: 28,
         sandContent: 35,
         soilScore: 89,
-        textureClass: 'Loam',
-        drainageClass: 'well-drained',
+        textureClass: 'Franco',
+        drainageClass: 'bien drenado',
       },
       metrics: { primary: 89, secondary: 85, trend: 'stable', volatility: 0.05 },
       alerts: [],
@@ -96,7 +96,7 @@ export const mockAssessmentResponse: AssessmentResponse = {
         avgSentiment: -0.15,
         positiveShare: 0.3,
         negativeShare: 0.45,
-        topThemes: ['drought', 'export_restrictions'],
+        topThemes: ['sequía', 'restricciones a la exportación'],
         riskEvents: [
           { title: 'Gobierno anuncia nuevas retenciones a la exportación de maíz', sentiment: -0.4, source: 'La Nación', date: '2026-09-05' },
         ],
@@ -105,11 +105,11 @@ export const mockAssessmentResponse: AssessmentResponse = {
       alerts: [
         {
           level: 'info',
-          message: 'Negative sentiment in agricultural news',
+          message: 'Sentimiento negativo en noticias agropecuarias',
           metric: 'avgSentiment',
           value: -0.15,
           threshold: -0.1,
-          recommendation: 'Monitor news coverage for export policy changes',
+          recommendation: 'Monitorear la cobertura de noticias sobre políticas de exportación',
         },
       ],
       sources: [{ provider: 'NewsAPI', endpoint: '/v2/everything', lastUpdated: TIMESTAMP, reliability: 0.75 }],

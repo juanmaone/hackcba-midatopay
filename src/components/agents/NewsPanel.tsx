@@ -8,15 +8,15 @@ export function NewsPanel({ snapshot, liveScore }: NewsPanelProps) {
   return (
     <AgentPanelBase
       icon={Newspaper}
-      title="News"
+      title="Noticias"
       snapshotScore={snapshot.score}
       liveScore={liveScore}
       confidence={snapshot.confidence}
       alerts={snapshot.alerts}
       fields={[
-        { label: 'Articles analyzed', value: `${snapshot.data.articleCount}` },
-        { label: 'Avg sentiment', value: snapshot.data.avgSentiment.toFixed(2) },
-        { label: 'Top themes', value: snapshot.data.topThemes.join(', ') },
+        { label: 'Artículos analizados', value: `${snapshot.data.articleCount}` },
+        { label: 'Sentimiento promedio', value: snapshot.data.avgSentiment.toFixed(2) },
+        { label: 'Temas principales', value: snapshot.data.topThemes.join(', ') },
       ]}
     />
   );

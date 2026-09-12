@@ -8,15 +8,15 @@ export function YieldPanel({ snapshot, liveScore }: YieldPanelProps) {
   return (
     <AgentPanelBase
       icon={Wheat}
-      title="Yield"
+      title="Rendimiento"
       snapshotScore={snapshot.score}
       liveScore={liveScore}
       confidence={snapshot.confidence}
       alerts={snapshot.alerts}
       fields={[
-        { label: 'Expected yield', value: `${snapshot.data.expectedYield.toFixed(1)} tn/ha` },
-        { label: 'Stress yield', value: `${snapshot.data.stressYield.toFixed(1)} tn/ha` },
-        { label: 'Yield volatility', value: `${snapshot.data.yieldVolatility}%` },
+        { label: 'Rendimiento esperado', value: `${snapshot.data.expectedYield.toFixed(1)} tn/ha` },
+        { label: 'Rendimiento en estrés', value: `${snapshot.data.stressYield.toFixed(1)} tn/ha` },
+        { label: 'Volatilidad del rendimiento', value: `${snapshot.data.yieldVolatility}%` },
       ]}
     />
   );

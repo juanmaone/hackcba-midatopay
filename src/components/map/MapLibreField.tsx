@@ -4,8 +4,7 @@ import * as maplibregl from 'maplibre-gl';
 import type { Map as MaplibreMap, LngLatBoundsLike, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { FieldPolygon } from './FieldPolygon';
-import { createSatelliteOverlayLayer, type SatelliteOverlay } from './SatelliteOverlayLayer';
-import type { OverlayLayerName } from './TerrainMesh';
+import { drawLayerCanvas, type OverlayLayerName } from './LayerCanvas';
 
 // Esri World Imagery — free, no-auth raster tiles with real global coverage at field-level
 // zoom (unlike MapLibre's own demo vector style, which only has data down to country outlines).
@@ -23,6 +22,9 @@ const SATELLITE_BASEMAP_STYLE: StyleSpecification = {
   layers: [{ id: 'esri-world-imagery', type: 'raster', source: 'esriWorldImagery' }],
 };
 
+const OVERLAY_SOURCE_ID = 'satellite-layer-canvas';
+const OVERLAY_LAYER_ID = 'satellite-layer-overlay';
+
 interface MapLibreFieldProps {
   polygon: Array<[number, number]>;
   activeLayer: OverlayLayerName;
@@ -30,12 +32,9 @@ interface MapLibreFieldProps {
 }
 
 export function MapLibreField({ polygon, activeLayer, onMapReady }: MapLibreFieldProps) {
-  const overlayRef = useRef<SatelliteOverlay | null>(null);
-  // react-map-gl attaches its ref asynchronously (after its own internal setup), so a plain
-  // useRef read in a mount-only effect can race it and see null forever. A callback ref
-  // fed into state re-renders this component exactly when the instance becomes available.
   const [mapRef, setMapRef] = useState<MapRef | null>(null);
   const handleRef = useCallback((ref: MapRef | null) => setMapRef(ref), []);
+  const canvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'));
 
   const bounds = useMemo<LngLatBoundsLike>(() => {
     const lngs = polygon.map(([lng]) => lng);
@@ -46,29 +45,43 @@ export function MapLibreField({ polygon, activeLayer, onMapReady }: MapLibreFiel
     ];
   }, [polygon]);
 
+  // [NW, NE, SE, SW] corners of the field's bounding box, the order CanvasSource requires.
+  const overlayCoordinates = useMemo((): [[number, number], [number, number], [number, number], [number, number]] => {
+    const lngs = polygon.map(([lng]) => lng);
+    const lats = polygon.map(([, lat]) => lat);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    return [[minLng, maxLat], [maxLng, maxLat], [maxLng, minLat], [minLng, minLat]];
+  }, [polygon]);
+
   useEffect(() => {
-    overlayRef.current?.setLayer(activeLayer);
-    mapRef?.getMap().triggerRepaint();
-  }, [activeLayer, mapRef]);
+    drawLayerCanvas(canvasRef.current, activeLayer);
+  }, [activeLayer]);
 
   useEffect(() => {
     if (!mapRef) return;
     const map = mapRef.getMap();
-    if (map.getLayer('satellite-overlay-layer')) return;
 
-    const overlay = createSatelliteOverlayLayer(polygon, activeLayer);
-    overlayRef.current = overlay;
-    map.addLayer(overlay);
-    onMapReady?.(map);
+    const addOverlay = () => {
+      if (map.getSource(OVERLAY_SOURCE_ID)) return;
+      drawLayerCanvas(canvasRef.current, activeLayer);
+      map.addSource(OVERLAY_SOURCE_ID, { type: 'canvas', canvas: canvasRef.current, coordinates: overlayCoordinates, animate: true });
+      map.addLayer({ id: OVERLAY_LAYER_ID, type: 'raster', source: OVERLAY_SOURCE_ID, paint: { 'raster-opacity': 0.6 } });
+      onMapReady?.(map);
+    };
+
+    if (map.loaded()) addOverlay();
+    else map.once('load', addOverlay);
 
     return () => {
-      if (map.getLayer(overlay.id)) map.removeLayer(overlay.id);
+      if (map.getLayer(OVERLAY_LAYER_ID)) map.removeLayer(OVERLAY_LAYER_ID);
+      if (map.getSource(OVERLAY_SOURCE_ID)) map.removeSource(OVERLAY_SOURCE_ID);
     };
-    // polygon/activeLayer/onMapReady are read only at add-time here — re-running this whole
-    // effect on every activeLayer change would tear down and rebuild the overlay layer instead
-    // of the cheap setLayer() path in the effect above.
+    // activeLayer is applied via the canvas redraw effect above, not by recreating the source.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapRef]);
+  }, [mapRef, overlayCoordinates]);
 
   return (
     <Map

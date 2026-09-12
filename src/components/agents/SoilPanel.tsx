@@ -8,15 +8,15 @@ export function SoilPanel({ snapshot, liveScore }: SoilPanelProps) {
   return (
     <AgentPanelBase
       icon={Layers}
-      title="Soil"
+      title="Suelo"
       snapshotScore={snapshot.score}
       liveScore={liveScore}
       confidence={snapshot.confidence}
       alerts={snapshot.alerts}
       fields={[
-        { label: 'Soil pH', value: `${snapshot.data.ph}` },
-        { label: 'Organic carbon', value: `${snapshot.data.organicCarbon} g/kg` },
-        { label: 'Texture class', value: snapshot.data.textureClass },
+        { label: 'pH del suelo', value: `${snapshot.data.ph}` },
+        { label: 'Carbono orgánico', value: `${snapshot.data.organicCarbon} g/kg` },
+        { label: 'Clase textural', value: snapshot.data.textureClass },
       ]}
     />
   );

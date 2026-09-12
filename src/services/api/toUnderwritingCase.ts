@@ -4,10 +4,10 @@ import type { ScenarioKey, StressScenario, UnderwritingCase } from '../../types/
 const SCENARIO_ORDER: ScenarioKey[] = ['base', 'drought', 'price', 'combined'];
 
 const SCENARIO_COPY: Record<ScenarioKey, { label: string; shortLabel: string }> = {
-  base: { label: 'BASE CASE', shortLabel: 'Base' },
-  drought: { label: 'DROUGHT -30%', shortLabel: 'Drought' },
-  price: { label: 'PRICE -20%', shortLabel: 'Price' },
-  combined: { label: 'DROUGHT + PRICE', shortLabel: 'Combined' },
+  base: { label: 'CASO BASE', shortLabel: 'Base' },
+  drought: { label: 'SEQUÍA -30%', shortLabel: 'Sequía' },
+  price: { label: 'PRECIO -20%', shortLabel: 'Precio' },
+  combined: { label: 'SEQUÍA + PRECIO', shortLabel: 'Combinado' },
 };
 
 // AssessmentResponse.scenarios (shared/types/assessment.ts) only carries score/exposure/dscr/risk
@@ -17,7 +17,7 @@ const SCENARIO_COPY: Record<ScenarioKey, { label: string; shortLabel: string }> 
 // src/data/demoCase.ts (price yield === base yield, combined yield === drought yield).
 const isYieldStressed = (key: ScenarioKey) => key === 'drought' || key === 'combined';
 
-const scenarioDecision = (risk: StressScenario['risk']) => (risk === 'high' ? 'REJECT / RESTRUCTURE' : 'APPROVE WITH LIMIT');
+const scenarioDecision = (risk: StressScenario['risk']) => (risk === 'high' ? 'RECHAZAR / REESTRUCTURAR' : 'APROBAR CON LÍMITE');
 
 /**
  * AssessmentResponse (shared/types/assessment.ts) carries only the computed/scored fields —
