@@ -95,21 +95,9 @@ h1 { margin-top: 8px; color: #1b2921; font-size: 21px; line-height: 1.1; letter-
 .card h2 { margin-top: 6px; color: #1d2a22; font-size: 16px; letter-spacing: -.025em; }
 
 .field-map { min-height: 536px; position: relative; overflow: hidden; border: 1px solid #203829; border-radius: 8px; color: #f0f4ea; background: #1b3024; isolation: isolate; }
-.map-background { position: absolute; inset: -2%; z-index: -2; transition: transform .25s ease, filter .3s ease; background: #35533b; }
-.map-background::before { content: ''; position: absolute; inset: 0; background: linear-gradient(132deg, rgba(20, 52, 33, .76), transparent 42%), linear-gradient(30deg, transparent 56%, rgba(143, 169, 99, .3) 56%, rgba(106, 139, 81, .2) 70%, transparent 70%), #456943; }
-.map-noise { position: absolute; inset: 0; opacity: .6; background: radial-gradient(ellipse at 12% 25%, rgba(159, 190, 111, .42) 0 17%, transparent 18%), radial-gradient(ellipse at 70% 75%, rgba(165, 186, 106, .35) 0 24%, transparent 25%), radial-gradient(ellipse at 92% 12%, rgba(35, 80, 45, .42) 0 20%, transparent 21%), repeating-linear-gradient(22deg, transparent 0 10px, rgba(211, 228, 157, .08) 10px 11px); }
-.map-grid-lines { position: absolute; inset: 0; opacity: .2; background-image: linear-gradient(rgba(238, 249, 200, .35) 1px, transparent 1px), linear-gradient(90deg, rgba(238, 249, 200, .35) 1px, transparent 1px); background-size: 70px 70px; mask-image: linear-gradient(to bottom, transparent, #000 19%, #000 80%, transparent); }
-.road { position: absolute; height: 9px; border-top: 2px solid rgba(234, 226, 186, .45); border-bottom: 1px solid rgba(102, 95, 56, .4); transform-origin: center; background: rgba(170, 157, 102, .38); }
-.road-one { width: 120%; left: -10%; top: 43%; transform: rotate(-13deg); }
-.road-two { width: 100%; left: 27%; top: 63%; transform: rotate(32deg); }
-.road-three { width: 54%; left: 52%; top: 22%; transform: rotate(72deg); }
-.field-block { position: absolute; border: 1px solid rgba(196, 219, 137, .3); background: rgba(117, 151, 75, .23); transform: skewY(-9deg) rotate(14deg); }
-.field-block-one { width: 25%; height: 17%; top: 6%; left: 9%; }.field-block-two { width: 24%; height: 25%; top: 55%; left: 1%; }.field-block-three { width: 28%; height: 18%; top: 62%; right: 1%; }.field-block-four { width: 18%; height: 19%; top: 24%; right: 7%; }
-.field-polygon { position: absolute; width: 79%; height: 81%; left: 10%; top: 10%; overflow: visible; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, .2)); transition: opacity .3s ease; }
-.field-pin { position: absolute; width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid rgba(245, 251, 215, .8); border-radius: 50%; color: #203527; background: #d4ee8d; box-shadow: 0 2px 4px rgba(0, 0, 0, .18); font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 500; }
-.pin-a { top: 28%; left: 34%; }.pin-b { top: 47%; left: 67%; }.pin-c { top: 65%; left: 39%; }
-.map-drought .map-background { filter: saturate(.76) hue-rotate(-9deg); }.map-combined .map-background { filter: saturate(.62) sepia(.14) hue-rotate(-16deg); }.map-price .map-background { filter: saturate(.92); }
-.layer-drought .map-noise { opacity: .72; }.layer-soil .map-background::before { background: linear-gradient(135deg, rgba(57, 37, 23, .5), transparent 50%), linear-gradient(30deg, #6d7450, #4e6846); }.layer-productivity .map-noise { opacity: .9; }
+.map-canvas { position: absolute; inset: 0; z-index: -2; transition: filter .3s ease; background: #35533b; }
+.map-canvas .maplibregl-ctrl-attrib { font-size: 9px; background: rgba(15, 42, 26, .55); color: #cbdbc5; }
+.map-drought .map-canvas { filter: saturate(.76) hue-rotate(-9deg); }.map-combined .map-canvas { filter: saturate(.62) sepia(.14) hue-rotate(-16deg); }.map-price .map-canvas { filter: saturate(.92); }
 .map-topbar { position: absolute; top: 0; left: 0; right: 0; padding: 20px 22px; display: flex; align-items: flex-start; justify-content: space-between; background: linear-gradient(to bottom, rgba(17, 37, 25, .7), transparent); }
 .map-title { margin-top: 5px; color: #f4f7ef; font-size: 18px; font-weight: 700; letter-spacing: -.035em; }.map-title span { color: #b2c6a5; font-size: 12px; font-weight: 500; }
 .map-live, .pulse-label { display: flex; align-items: center; gap: 7px; padding: 6px 8px; color: #c9dbc0; border: 1px solid rgba(219, 236, 201, .18); border-radius: 4px; background: rgba(18, 42, 28, .42); font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: .08em; }
