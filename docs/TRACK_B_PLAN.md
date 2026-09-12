@@ -274,6 +274,49 @@ Pedido del usuario: cerrar la brecha del punto anterior — reemplazar el NDVI m
 - No se implementó el overlay de píxeles reales sobre el mapa (reemplazar el tile GIBS de Vegetación) — decisión explícita del usuario de ir primero por el valor agregado, no por el raster completo.
 - `analyzeVegetationHealth`'s desviación histórica ("últimos 5 años") y `detectCropStage` (requiere serie temporal en la temporada) no están conectados — necesitan múltiples búsquedas STAC, no una sola.
 
+## 11. Backend Track A implementado — 2026-09-12
+
+Track A (el otro developer, mismo repo) completó su plan de 13 tareas (`docs/superpowers/plans/2026-09-12-track-a-backend.md`, ledger en `.superpowers/sdd/2026-09-12-track-a-backend/progress.md`), construyendo desde cero el backend Express+Socket.IO que este documento daba como bloqueante en la sección 5. Se documenta acá por la misma razón que las secciones 7-10: dejar registro de qué se hizo y qué queda pendiente sin depender del historial de chat.
+
+**Lo construido:**
+
+- **`server/index.ts`**: bootstrap Express 5 + `http.Server` + Socket.IO 4, con `helmet`/`cors`/`express.json()` y `GET /health`.
+- **5 agentes de riesgo** (`server/agents/{financial,climate,soil,news,yield}/`), cada uno con mock fixture + scoring puro + runner async, corridos en paralelo por `runAllAgents` (con callback de progreso por agente, base del WebSocket):
+  - **`financial`**: **mock permanente** — BCRA requiere API key no disponible/no verificada, decisión de alcance explícita del usuario, no es un placeholder temporal.
+  - **`yield`**: **mock permanente** — USDA PSD también requiere API key, misma decisión de alcance.
+  - **`climate`**: **real**, Open-Meteo (`archive-api.open-meteo.com`, sin auth) — mismo patrón ya usado en `src/services/api/climateClient.ts` (Track B, §7), con fallback a mock si el fetch falla.
+  - **`soil`**: **real**, SoilGrids (ISRIC, sin auth) con cache de 24h y fallback a mock si el fetch falla o si el punto no tiene cobertura SoilGrids — este fallback es un resultado esperado y documentado, no una falla.
+  - **`news`**: **real**, GDELT (`api.gdeltproject.org`, sin auth) con fallback a mock si el fetch falla. Se descubrió en vivo que los artículos de GDELT no siempre traen el campo `tone` (contradice el ejemplo de `docs/DATA_SOURCES.md`) — corregido tratando `tone` como opcional y bajando la confianza cuando falta, en vez de propagar `NaN` silenciosamente.
+- **`server/engine/riskSynthesis.ts`**: motor puro que combina los 5 resultados en AgroScore, DSCR (base/estrés), rating y decisión de crédito. Desviaciones de fórmula respecto a `docs/`, documentadas en el propio plan y en el código:
+  - `financialScore` se toma directo de `financial.score` (61), sin recomputar vía la fórmula de deltas de `docs/INTEGRATION_GUIDE.md` (que da un resultado distinto al del mock y nunca se ejercita porque financial es mock-only).
+  - Los números de ejemplo de `docs/INTEGRATION_GUIDE.md` no cierran con su propia fórmula documentada (`78*0.40+89*0.35+72*0.25=80.35≠82`) — se implementó la fórmula tal cual está documentada (pesos, DSCR, tabla de rating), no los números de ejemplo; el test golden-path usa valores propios verificados a mano.
+  - `calculateNewsAdjustment` no tiene fórmula exacta en los docs (solo reglas cualitativas) — se definió como `round((news.score - 50) * 0.2)`.
+  - Score base de partida para climate/soil/yield: 70 (no especificado en los docs, que solo dan deltas); para news: 50 (docs sí dicen "50 = neutral").
+  - `calculateRecommendedExposure` agrega un clamp inferior a 0 (`Math.max(0, ...)`) que el doc de referencia no tiene — sin él, DSCR negativo bajo el escenario combinado de estrés produce exposición recomendada negativa.
+- **`server/engine/stressScenarios.ts`**: escenarios base/sequía(-30%)/precio(-20%)/combinado, con fórmulas de `score` y `risk` definidas en el plan (no estaban en los docs).
+- **`POST /api/assessment`** (`server/routes/risk.ts`): valida el request con Zod, corre los 5 agentes, sintetiza el riesgo, calcula escenarios, devuelve `AssessmentResponse`.
+- **`server/websocket.ts`**: emite `score-updated` y `alert-triggered` por agente a medida que cada uno resuelve (no un solo evento al final), consumido por el hook ya existente `src/hooks/useLiveAgentUpdates.ts` (Track B, tarea 10).
+
+**Limpieza de frontend (Tarea 12 del plan de Track A):** se eliminó el override climático redundante del lado del cliente en `src/App.tsx`, ya innecesario porque `assessmentClient.ts` (Track B, tarea 4) llama a `POST /api/assessment` y ese backend ahora sí calcula clima real — el override quedaba duplicando lo que el backend ya resuelve.
+
+**Verificado en esta sesión (Tarea 13, verificación end-to-end):**
+
+- `npm run test`: 68/68 tests pasan en 19 archivos (agentes, engine, rutas, websocket de Track A + `server/satellite/**` y `src/` de Track B).
+- `npm run typecheck:server && npx tsc -b --noEmit`: ambos limpios, sin errores.
+- Con `npm run dev:all` corriendo (Vite :5173 + API :3001), navegador contra `http://localhost:5173`:
+  - `POST /api/assessment` → `200`, `caseId: "AG-1789222359156"` (timestamp real, no el `AG-2026-041` estático del fixture viejo — confirma que el backend real está respondiendo, no el fallback mock del frontend).
+  - `agents.soil.sources[0].provider` = `"Mock"` (SoilGrids no tuvo cobertura para el punto del lote en esta corrida — fallback esperado y documentado más arriba, no una falla).
+  - `agents.climate.data`: `historicalRainfall: 863`, `rainfallAnomaly: 7`, `droughtRisk: "low"` — coincide exactamente con lo mostrado en el panel CLIMA de la UI (863 mm / 7% / Bajo), confirmando que la limpieza de la Tarea 12 no dejó ningún override visible.
+  - Consola del navegador: sin errores de conexión de Socket.IO (solo un warning preexistente de React sobre `key` prop en una lista, no relacionado).
+  - El badge "CASO SINTÉTICO" sigue visible — esperado y fuera de alcance: `App.tsx` no distingue todavía una respuesta real de un fallback a mock.
+
+**Pendiente / fuera de alcance** (decisiones de alcance explícitas del plan de Track A, no olvidos):
+
+- `server/satellite/integration/agentBridge.ts` sigue con su mock — no se conectó a un fetch satelital real del lado del servidor (el NDVI real de la §10 vive del lado del cliente, en `src/services/api/satelliteClient.ts`).
+- Integraciones reales de BCRA (financial) y USDA PSD (yield) — ambas requieren API key, decisión explícita de dejarlas mock permanentemente.
+- Evento WebSocket `scenario-changed` — no implementado, solo `score-updated`/`alert-triggered`.
+- Badge dinámico "real vs. sintético" en la UI — `App.tsx` no distingue hoy una respuesta real del backend de un fallback a `mockAssessmentResponse.ts`; el badge "CASO SINTÉTICO" queda estático independientemente del origen del dato.
+
 ## 6. Documentos de referencia (no duplicar, consultar directamente)
 
 - `docs/SATELLITE_MODULE.md` — módulo satelital completo (interfaces, fórmulas, mocks).
