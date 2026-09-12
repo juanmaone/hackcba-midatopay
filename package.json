@@ -9,10 +9,13 @@
     "dev:all": "concurrently -n web,api -c blue,green \"npm:dev\" \"npm:dev:server\"",
     "build": "tsc -b && vite build",
     "typecheck:server": "tsc -p server/tsconfig.json --noEmit",
+    "test": "vitest run",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.3.0",
     "@tanstack/react-query": "^5.102.8",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -28,8 +31,6 @@
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "three": "^0.182.0",
-    "@react-three/fiber": "^9.3.0",
-    "@react-three/drei": "^10.7.8",
     "zod": "^4.6.2"
   },
   "devDependencies": {
@@ -46,6 +47,7 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.20.6",
     "typescript": "~6.0.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
   }
 }
