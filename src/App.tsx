@@ -56,12 +56,10 @@ function App() {
     () => (assessment ? toUnderwritingCase(assessment, demoCase) : demoCase),
     [assessment],
   );
-  // Real historical rainfall/anomaly from Open-Meteo (docs/Evidence.tsx links the source)
-  // overrides the mock/agent figures wherever they resolve — everything else stays as-is.
-  const caseData = useMemo(
-    () => (realClimate ? { ...baseCaseData, climate: { ...baseCaseData.climate, historicalRainfall: realClimate.annualRainfallMm, rainfallAnomaly: realClimate.rainfallAnomalyPercent } } : baseCaseData),
-    [baseCaseData, realClimate],
-  );
+  // baseCaseData.climate already comes from the backend's real climate agent (Open-Meteo) once
+  // POST /api/assessment succeeds — toUnderwritingCase.ts maps agents.climate.data straight
+  // through. realClimate (useClimateData, above) stays only for Evidence.tsx's source-link.
+  const caseData = baseCaseData;
   const scenarioList = useMemo(
     () => (assessment ? toStressScenarios(assessment) : scenarios),
     [assessment],
