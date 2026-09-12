@@ -1,0 +1,28 @@
+{
+  "product": "AGROSCORE",
+  "positioning": "Decision infrastructure for agricultural lenders",
+  "hero_output": "Recommended Exposure",
+  "core_demo": "Stress-to-Exposure Engine",
+  "competitive_red_flags": [
+    "generic AI credit scoring",
+    "satellite monitoring",
+    "continuous crop monitoring",
+    "CUIT-only credit evaluator",
+    "loan marketplace"
+  ],
+  "visual_synthesis": {
+    "Traive": "institutional credit hierarchy",
+    "TerraMagna": "map + alerts + portfolio risk",
+    "SatSure": "parcel-level Earth Intelligence",
+    "Nera": "financial clarity and low-friction flows"
+  },
+  "demo_case": {
+    "requested_ars_m": 100,
+    "recommended_ars_m": 76,
+    "financial_capacity": 61,
+    "productive_resilience": 87,
+    "agroscore": 82,
+    "base_dscr": 1.82,
+    "stress_dscr": 1.24
+  }
+}
