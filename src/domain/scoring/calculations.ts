@@ -11,4 +11,7 @@ export const calculateStressScenario = (key: ScenarioKey, scenarios: StressScena
 
 export const getScoreTone = (score: number) => score >= 75 ? 'positive' : score >= 60 ? 'watch' : 'negative';
 
+export const getProductiveResilience = (key: ScenarioKey) =>
+  key === 'combined' ? 69 : key === 'drought' ? 78 : key === 'price' ? 84 : 87;
+
 export const getBaseDecision = (caseData: UnderwritingCase) => caseData.loan.requestedAmount <= caseData.underwriting.recommendedExposure ? 'APPROVE' : 'APPROVE WITH LIMIT';
