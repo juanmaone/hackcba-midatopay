@@ -5,13 +5,13 @@ import { createServer } from 'node:http';
 import helmet from 'helmet';
 import { Server as SocketIOServer } from 'socket.io';
 import { createRiskRouter } from './routes/risk.js';
+import { setupWebSocket } from './websocket.js';
 
 export function createApp() {
   const app = express();
   app.use(helmet());
   app.use(cors());
   app.use(express.json());
-  app.use('/api', createRiskRouter());
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
@@ -21,6 +21,9 @@ export function createApp() {
   const io = new SocketIOServer(httpServer, {
     cors: { origin: 'http://localhost:5173' },
   });
+
+  const onAgentComplete = setupWebSocket(io);
+  app.use('/api', createRiskRouter(onAgentComplete));
 
   return { app, httpServer, io };
 }
