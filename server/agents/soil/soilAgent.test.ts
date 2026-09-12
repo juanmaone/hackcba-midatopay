@@ -56,6 +56,13 @@ describe('runSoilAgent', () => {
     loan: { requestedAmount: 100_000_000, termMonths: 12 },
   };
 
+  const input4 = {
+    caseId: 'AG-test-4',
+    applicant: { cuit: '30-71284539-9', name: 'Test' },
+    field: { lat: -35.0, lng: -65.0, hectares: 300, crop: 'maiz', campaign: '2026/27' },
+    loan: { requestedAmount: 100_000_000, termMonths: 12 },
+  };
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -118,5 +125,32 @@ describe('runSoilAgent', () => {
     await runSoilAgent(input3);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the mock when SoilGrids response has null mean values (no data coverage)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          properties: {
+            layers: [
+              { name: 'phh2o', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: null } },
+              { name: 'soc', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: null } },
+              { name: 'clay', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: null } },
+              { name: 'sand', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: null } },
+            ],
+          },
+        }),
+      })),
+    );
+
+    const result = await runSoilAgent(input4);
+
+    // Should fall back to mock, not compute a score from null values
+    expect(result.data).toEqual(soilMock.data);
+    expect(result.sources[0].provider).toBe('Mock');
+    expect(result.confidence).toBe(0.6);
   });
 });

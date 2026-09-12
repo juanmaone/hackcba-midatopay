@@ -8,7 +8,7 @@ const SOILGRIDS_URL = 'https://rest.isric.org/soilgrids/v2.0/properties/query';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 interface SoilGridsResponse {
-  properties: { layers: Array<{ name: string; values: { mean: number } }> };
+  properties: { layers: Array<{ name: string; values: { mean: number | null } }> };
 }
 
 const cache = new Map<string, { data: SoilAgentResult; expiresAt: number }>();
@@ -43,7 +43,8 @@ export async function runSoilAgent(input: AgentInput): Promise<SoilAgentResult> 
     const organicCarbon = meanOf('soc');
     const clayContent = meanOf('clay');
     const sandContent = meanOf('sand');
-    if (ph === undefined || organicCarbon === undefined || clayContent === undefined || sandContent === undefined) {
+    // Treat null as missing (SoilGrids returns null when a layer is present but has no data coverage at this location)
+    if (ph == null || organicCarbon == null || clayContent == null || sandContent == null) {
       throw new Error('SoilGrids response missing an expected property layer');
     }
 
