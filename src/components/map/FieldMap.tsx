@@ -1,37 +1,14 @@
 import { useState } from 'react';
-import { Maximize2, Minus, Plus, ScanLine, Satellite, Sprout, ThermometerSun, Waves } from 'lucide-react';
+import { Layers3, Maximize2, Minus, Plus, ScanLine, Satellite, Sprout, ThermometerSun, Waves } from 'lucide-react';
 import type { StressScenario } from '../../types/underwriting';
 import { SectionLabel } from '../ui/SectionLabel';
 
 interface FieldMapProps { scenario: StressScenario }
 
 export function FieldMap({ scenario }: FieldMapProps) {
-  const [layer, setLayer] = useState('Satellite');
-  const layers = [
-    { label: 'Satellite', icon: Satellite }, { label: 'Vegetation', icon: Sprout },
-    { label: 'Climate', icon: ThermometerSun }, { label: 'Soil', icon: Waves },
-  ];
-  return <section className={`field-map map-${scenario.overlay}`}>
-    <div className="map-background">
-      <div className="map-noise" />
-      <div className="road road-one" /><div className="road road-two" /><div className="road road-three" />
-      <div className="field-block field-block-one" /><div className="field-block field-block-two" /><div className="field-block field-block-three" />
-      <svg className="field-polygon" viewBox="0 0 620 430" role="img" aria-label="300 hectare maize field polygon">
-        <defs><pattern id="rows" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(22)"><line x1="0" y1="0" x2="0" y2="14" stroke="#c3e18f" strokeWidth="2" opacity=".45" /></pattern></defs>
-        <polygon points="180,86 490,112 540,300 245,365 122,260" fill="url(#rows)" stroke="#e4f4ae" strokeWidth="3" />
-        <polygon points="180,86 490,112 540,300 245,365 122,260" fill="none" stroke="#182b20" strokeWidth="1" strokeDasharray="5 6" opacity=".55" />
-      </svg>
-      <div className="map-crosshair"><span /></div>
-      <div className="map-grid-label label-north">N</div><div className="map-grid-label label-west">W</div>
-      <div className="map-scale">2 km</div>
-    </div>
-    <div className="map-topbar">
-      <div><SectionLabel>FIELD DIGITAL TWIN</SectionLabel><div className="map-title">Marcos Juárez <span>/ CBA</span></div></div>
-      <div className="map-live"><span className="live-dot" /> DEMO DATASET</div>
-    </div>
-    <div className="layer-switcher">{layers.map(({ label, icon: Icon }) => <button key={label} className={layer === label ? 'active' : ''} onClick={() => setLayer(label)}><Icon size={14} />{label}</button>)}</div>
-    <div className="map-badge"><div className="badge-icon"><Sprout size={16} /></div><div><strong>300 ha · Maíz</strong><span>Campaign 2026/27</span><span>Marcos Juárez, Córdoba</span></div></div>
-    <div className="resilience-badge"><div><SectionLabel>PRODUCTIVE RESILIENCE</SectionLabel><strong>{scenario.key === 'combined' ? 69 : scenario.key === 'drought' ? 78 : 87} <small>/ 100</small></strong></div><ScanLine size={20} /></div>
-    <div className="map-tools"><button aria-label="zoom in"><Plus size={15} /></button><button aria-label="zoom out"><Minus size={15} /></button><button aria-label="fullscreen"><Maximize2 size={15} /></button><div className="map-attribution">Map view · 32°41′S 62°06′W</div></div>
-  </section>;
+  const [layer, setLayer] = useState('Vegetation');
+  const [zoom, setZoom] = useState(1);
+  const layers = [{ label: 'Vegetation', icon: Sprout }, { label: 'Drought', icon: ThermometerSun }, { label: 'Soil', icon: Waves }, { label: 'Productivity', icon: Satellite }];
+  const resilience = scenario.key === 'combined' ? 69 : scenario.key === 'drought' ? 78 : scenario.key === 'price' ? 84 : 87;
+  return <section className={`field-map map-${scenario.overlay} layer-${layer.toLowerCase()}`}><div className="map-background" style={{ transform: `scale(${zoom})` }}><div className="map-noise" /><div className="map-grid-lines" /><div className="road road-one" /><div className="road road-two" /><div className="road road-three" /><div className="field-block field-block-one" /><div className="field-block field-block-two" /><div className="field-block field-block-three" /><div className="field-block field-block-four" /><svg className="field-polygon" viewBox="0 0 620 430" role="img" aria-label="300 hectare maize field polygon"><defs><pattern id="rows" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(22)"><line x1="0" y1="0" x2="0" y2="14" stroke="#d4efa0" strokeWidth="2" opacity=".55" /></pattern><pattern id="droughtRows" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(22)"><line x1="0" y1="0" x2="0" y2="14" stroke="#d99b55" strokeWidth="2" opacity=".5" /></pattern></defs><polygon points="180,86 490,112 540,300 245,365 122,260" fill={scenario.risk === 'high' ? 'url(#droughtRows)' : 'url(#rows)'} stroke="#e8f6bd" strokeWidth="3" /><polygon points="180,86 490,112 540,300 245,365 122,260" fill="none" stroke="#13281d" strokeWidth="1" strokeDasharray="5 6" opacity=".62" /><path d="M190 112 C280 140 365 115 475 145 M152 248 C270 250 355 218 520 270" fill="none" stroke="#f4f9d9" strokeWidth="1" opacity=".5" /></svg><div className="field-pin pin-a">A</div><div className="field-pin pin-b">B</div><div className="field-pin pin-c">C</div></div><div className="map-topbar"><div><SectionLabel>FIELD INTELLIGENCE</SectionLabel><div className="map-title">Marcos Juárez <span>/ CBA</span></div></div><div className="map-live"><span className="live-dot" /> DEMO DATASET</div></div><div className="map-layer-title"><Layers3 size={13} /> FIELD LAYERS</div><div className="layer-switcher">{layers.map(({ label, icon: Icon }) => <button type="button" key={label} className={layer === label ? 'active' : ''} onClick={() => setLayer(label)}><Icon size={14} />{label}</button>)}</div><div className="map-badge"><div className="badge-icon"><Sprout size={16} /></div><div><strong>300 ha · Maize</strong><span>Campaign 2026/27</span><span>Marcos Juárez, Córdoba</span></div></div><div className="resilience-badge"><div><SectionLabel>PRODUCTIVE RESILIENCE</SectionLabel><strong>{resilience} <small>/ 100</small></strong></div><ScanLine size={20} /></div><div className="map-legend"><span><i className="legend-field" /> Selected field</span><span><i className="legend-road" /> Access road</span></div><div className="map-tools"><button type="button" aria-label="zoom in" onClick={() => setZoom((value) => Math.min(1.1, value + .05))}><Plus size={15} /></button><button type="button" aria-label="zoom out" onClick={() => setZoom((value) => Math.max(1, value - .05))}><Minus size={15} /></button><button type="button" aria-label="fullscreen"><Maximize2 size={15} /></button><div className="map-attribution">Map view · 32°41′S 62°06′W</div></div></section>;
 }
