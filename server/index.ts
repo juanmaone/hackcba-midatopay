@@ -4,12 +4,14 @@ import express from 'express';
 import { createServer } from 'node:http';
 import helmet from 'helmet';
 import { Server as SocketIOServer } from 'socket.io';
+import { createRiskRouter } from './routes/risk.js';
 
 export function createApp() {
   const app = express();
   app.use(helmet());
   app.use(cors());
   app.use(express.json());
+  app.use('/api', createRiskRouter());
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
