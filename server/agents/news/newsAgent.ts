@@ -12,7 +12,7 @@ interface GdeltArticle {
   seendate: string;
   domain: string;
   language: string;
-  tone: number;
+  tone?: number;
 }
 
 interface GdeltResponse {
@@ -43,17 +43,21 @@ export async function runNewsAgent(input: AgentInput): Promise<NewsAgentResult> 
     const json = (await res.json()) as GdeltResponse;
     const articles = json.articles ?? [];
 
-    const sentiments = articles.map((a) => a.tone / 10);
+    // Filter to only articles with numeric tone data
+    const articlesWithTone = articles.filter((a) => typeof a.tone === 'number');
+
+    // Compute sentiment aggregates only from articles with tone data
+    const sentiments = articlesWithTone.map((a) => a.tone! / 10);
     const avgSentiment = sentiments.length === 0 ? 0 : Math.round((sentiments.reduce((a, b) => a + b, 0) / sentiments.length) * 100) / 100;
     const positiveShare = sentiments.length === 0 ? 0 : Math.round((sentiments.filter((s) => s > 0).length / sentiments.length) * 100) / 100;
     const negativeShare = sentiments.length === 0 ? 0 : Math.round((sentiments.filter((s) => s < 0).length / sentiments.length) * 100) / 100;
 
     const topThemes = THEME_KEYWORDS.filter((keyword) => articles.some((a) => a.title.toLowerCase().includes(keyword)));
 
-    const riskEvents = articles
-      .filter((a) => a.tone / 10 < -0.3)
+    const riskEvents = articlesWithTone
+      .filter((a) => a.tone! / 10 < -0.3)
       .slice(0, 5)
-      .map((a) => ({ title: a.title, sentiment: Math.round((a.tone / 10) * 100) / 100, source: a.domain, date: parseGdeltDate(a.seendate) }));
+      .map((a) => ({ title: a.title, sentiment: Math.round((a.tone! / 10) * 100) / 100, source: a.domain, date: parseGdeltDate(a.seendate) }));
 
     const riskKeywordCount = articles.filter((a) => RISK_KEYWORDS.some((k) => a.title.toLowerCase().includes(k))).length;
 
@@ -71,7 +75,7 @@ export async function runNewsAgent(input: AgentInput): Promise<NewsAgentResult> 
     return {
       agentId: 'news',
       timestamp: new Date().toISOString(),
-      confidence: articles.length > 0 ? 0.75 : 0.4,
+      confidence: articles.length > 0 && articlesWithTone.length > 0 ? 0.75 : 0.4,
       score,
       data,
       metrics: { primary: score, secondary: articles.length, trend: 'stable', volatility: 0.15 },

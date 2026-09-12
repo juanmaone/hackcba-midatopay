@@ -33,7 +33,7 @@ describe('runNewsAgent', () => {
     vi.unstubAllGlobals();
   });
 
-  it('parses a successful GDELT response into NewsAgentResult', async () => {
+  it('parses a successful GDELT response without tone field (real API)', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({
@@ -41,8 +41,8 @@ describe('runNewsAgent', () => {
         status: 200,
         json: async () => ({
           articles: [
-            { url: 'https://a.com/1', title: 'Buena cosecha de maíz en Córdoba', seendate: '20260901T120000Z', domain: 'a.com', language: 'Spanish', tone: 3.2 },
-            { url: 'https://a.com/2', title: 'Sequía preocupa a productores', seendate: '20260905T120000Z', domain: 'a.com', language: 'Spanish', tone: -4.1 },
+            { url: 'https://a.com/1', title: 'Buena cosecha de maíz en Córdoba', seendate: '20260901T120000Z', domain: 'a.com', language: 'Spanish' },
+            { url: 'https://a.com/2', title: 'Sequía preocupa a productores', seendate: '20260905T120000Z', domain: 'a.com', language: 'Spanish' },
           ],
         }),
       })),
@@ -52,7 +52,61 @@ describe('runNewsAgent', () => {
 
     expect(result.agentId).toBe('news');
     expect(result.data.articleCount).toBe(2);
+    expect(result.data.avgSentiment).toBe(0);
+    expect(result.data.positiveShare).toBe(0);
+    expect(result.data.negativeShare).toBe(0);
+    expect(result.confidence).toBe(0.4);
     expect(result.sources[0].provider).toBe('GDELT');
+  });
+
+  it('computes sentiment only from articles with tone field', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          articles: [
+            { url: 'https://a.com/1', title: 'Buena cosecha', seendate: '20260901T120000Z', domain: 'a.com', language: 'Spanish', tone: 3.2 },
+            { url: 'https://a.com/2', title: 'Sequía preocupa', seendate: '20260905T120000Z', domain: 'a.com', language: 'Spanish' },
+            { url: 'https://a.com/3', title: 'Crisis agrícola', seendate: '20260903T120000Z', domain: 'a.com', language: 'Spanish', tone: -4.1 },
+          ],
+        }),
+      })),
+    );
+
+    const result = await runNewsAgent(input);
+
+    expect(result.data.articleCount).toBe(3);
+    // Only 2 articles have tone: (3.2 - 4.1) / 2 / 10 = -0.045, rounds to -0.04
+    expect(result.data.avgSentiment).toBe(-0.04);
+    expect(result.data.positiveShare).toBe(0.5);
+    expect(result.data.negativeShare).toBe(0.5);
+    expect(result.confidence).toBe(0.75);
+  });
+
+  it('defaults sentiment to zero when no articles have tone', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          articles: [
+            { url: 'https://a.com/1', title: 'Noticia 1', seendate: '20260901T120000Z', domain: 'a.com', language: 'Spanish' },
+            { url: 'https://a.com/2', title: 'Noticia 2', seendate: '20260902T120000Z', domain: 'a.com', language: 'Spanish' },
+          ],
+        }),
+      })),
+    );
+
+    const result = await runNewsAgent(input);
+
+    expect(result.data.articleCount).toBe(2);
+    expect(result.data.avgSentiment).toBe(0);
+    expect(result.data.positiveShare).toBe(0);
+    expect(result.data.negativeShare).toBe(0);
+    expect(result.confidence).toBe(0.4);
   });
 
   it('falls back to the mock when the fetch fails', async () => {
