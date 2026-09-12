@@ -1,5 +1,6 @@
 import type { AssessmentResponse } from '../../../shared/types';
 import type { RealClimateData } from '../../services/api/climateClient';
+import type { RealSoilMoistureData } from '../../services/api/soilMoistureClient';
 import { useLiveAgentUpdates } from '../../hooks/useLiveAgentUpdates';
 import { SectionLabel } from '../ui/SectionLabel';
 import { FinancialPanel } from './FinancialPanel';
@@ -8,9 +9,9 @@ import { YieldPanel } from './YieldPanel';
 import { SoilPanel } from './SoilPanel';
 import { NewsPanel } from './NewsPanel';
 
-interface AgentPanelsSectionProps { assessment: AssessmentResponse; realClimate?: RealClimateData }
+interface AgentPanelsSectionProps { assessment: AssessmentResponse; realClimate?: RealClimateData; realSoilMoisture?: RealSoilMoistureData }
 
-export function AgentPanelsSection({ assessment, realClimate }: AgentPanelsSectionProps) {
+export function AgentPanelsSection({ assessment, realClimate, realSoilMoisture }: AgentPanelsSectionProps) {
   const live = useLiveAgentUpdates(assessment.caseId);
   return (
     <div className="agent-panels-section">
@@ -22,7 +23,7 @@ export function AgentPanelsSection({ assessment, realClimate }: AgentPanelsSecti
         <FinancialPanel snapshot={assessment.agents.financial} liveScore={live.scores.financial} />
         <ClimatePanel snapshot={assessment.agents.climate} liveScore={live.scores.climate} realClimate={realClimate} />
         <YieldPanel snapshot={assessment.agents.yield} liveScore={live.scores.yield} />
-        <SoilPanel snapshot={assessment.agents.soil} liveScore={live.scores.soil} />
+        <SoilPanel snapshot={assessment.agents.soil} liveScore={live.scores.soil} realSoilMoisture={realSoilMoisture} />
         <NewsPanel snapshot={assessment.agents.news} liveScore={live.scores.news} />
       </div>
     </div>

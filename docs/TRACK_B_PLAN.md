@@ -170,7 +170,7 @@ Eventos y payloads exactos en `docs/INTEGRATION_GUIDE.md` sección "WebSocket Ev
 - [x] El valor de resiliencia productiva coincide entre `Explainability` y `ScoreSummary` para los 4 escenarios (regresión del bug documentado).
 - [x] Con el backend de Track A apagado, el dashboard completo sigue renderizando (vía `mockAssessmentResponse.ts`), sin errores de consola.
 - [x] El mapa renderiza tiles reales de MapLibre con el polígono del campo correctamente ubicado en Córdoba — ahora sobre un lote agrícola real (ver §7).
-- [x] El overlay de capas (Vegetation/Drought/Soil/Productivity) cambia visualmente al alternar el selector de capas — implementado con `CanvasSource` en vez de Three.js (ver §7, desvío documentado).
+- [x] El overlay de capas (Vegetation/Drought/Soil/Productivity) cambia visualmente al alternar el selector de capas — implementado con 4 raster sources de NASA GIBS reales (ver §8, ya no `CanvasSource` sintético).
 - [ ] `POST /api/assessment` (cuando Track A lo tenga arriba) se consume end-to-end desde la UI real, no solo desde el fixture. **Bloqueado por Track A** — el código ya intenta el fetch real primero (`assessmentClient.ts`) y cae al mock solo si falla.
 - [ ] Los paneles de agentes reciben `score-updated`/`alert-triggered` en vivo cuando el backend emite esos eventos. **Bloqueado por Track A** — `useLiveAgentUpdates` ya se suscribe correctamente; falta un `server/websocket.ts` real emitiendo para verlo completo.
 
@@ -209,9 +209,9 @@ Pedido por el usuario el 2026-09-12, después de cerrar las Tareas 1-11:
 3. **Lote agrícola real**: el polígono antes caía sobre el pueblo de Marcos Juárez; ahora usa un lote real documentado en OpenStreetMap (`landuse=farmland`, way [281480419](https://www.openstreetmap.org/way/281480419), ~309 ha, ~2.3 km al oeste del centro del pueblo).
 4. **Clima verificable**: `src/services/api/climateClient.ts` llama a la API histórica de Open-Meteo (gratis, sin auth) para las coordenadas reales del lote — lluvia real 863mm/anomalía +7% (dato real, distinto del mock que decía -12%). El panel de Clima linkea "Verificar en Open-Meteo" a la consulta exacta.
 
-### 8. Pendiente: análisis satelital avanzado con modelos NASA (en progreso, no implementado)
+### 8. Análisis satelital avanzado con modelos NASA — implementado 2026-09-12
 
-Pedido del usuario: reemplazar el patchwork sintético de `LayerCanvas.ts` por capas satelitales **reales** de modelos NASA, con fuente verificable. Investigación ya hecha (APIs confirmadas funcionando sin auth para las coordenadas del lote):
+Pedido del usuario ("no quiero datos de demo, ni un caso sintético, eso no da un efecto wow"): reemplazar el patchwork sintético de `LayerCanvas.ts` por capas satelitales **reales** de modelos NASA, con fuente verificable. Investigación ya hecha (APIs confirmadas funcionando sin auth para las coordenadas del lote):
 
 - **NASA GIBS** (`gibs.earthdata.nasa.gov`, WMTS/XYZ, sin auth, EPSG:3857 nativo — se integra directo en MapLibre como raster source). Capas identificadas y verificadas en el catálogo real:
   - Vegetación → `MODIS_Terra_NDVI_8Day` (NDVI real, actualización ~diaria sobre compuesto de 8 días, datos hasta 2026-09-11 al momento de escribir esto)
@@ -222,12 +222,57 @@ Pedido del usuario: reemplazar el patchwork sintético de `LayerCanvas.ts` por c
   - Cada capa GIBS tiene una leyenda SVG oficial descargable (ej. `https://gibs.earthdata.nasa.gov/legends/MODIS_NDVI_H.svg`) — mostrarla es la forma más directa de dar "fuente de verdad" visual.
 - **NASA POWER** (`power.larc.nasa.gov/api`, JSON, sin auth) para métricas puntuales (no imagen): climatología 20 años (2001-2020, fuente MERRA-2/SYN1DEG) de precipitación/temperatura/radiación, y datos diarios recientes incluyendo `GWETROOT`/`GWETTOP` (humedad de suelo raíz/superficial, real, ~diario). Útil para complementar los paneles de agentes con otra fuente NASA además de GIBS.
 
-**Falta hacer:**
-1. Confirmar el `TileMatrixSet`/rango de fechas exacto de la capa de sequía elegida.
-2. Construir las URLs de tiles por capa (reemplazando el `paint`/canvas de `LayerCanvas.ts` por un `raster` source por capa, o alternando la URL de un único source al cambiar de capa).
-3. Decidir y manejar el caso de nubosidad/vacíos (los productos ópticos como NDVI pueden tener huecos por nubes en la fecha default).
-4. Agregar attribution/leyenda NASA visible en el mapa (requisito de uso de GIBS).
-5. Verificar visualmente en navegador cada capa sobre el lote real antes de dar por cerrado.
+**Implementación final:**
+
+`src/components/map/nasaGibsLayers.ts` (nuevo) define, por capa, el `layerIdentifier`, `tileMatrixSet` y `maxNativeZoom` — verificados contra `WMTSCapabilities.xml` de GIBS (`curl` + parseo con Python), no asumidos:
+
+| Capa | GIBS layer | TileMatrixSet | maxNativeZoom |
+|---|---|---|---|
+| Vegetación | `MODIS_Terra_NDVI_8Day` | `GoogleMapsCompatible_Level9` | 9 |
+| Sequía | `MODIS_Terra_L3_Land_Surface_Temp_8Day_Day` | `GoogleMapsCompatible_Level7` | 7 |
+| Suelo | `SMAP_L4_Analyzed_Root_Zone_Soil_Moisture` | `GoogleMapsCompatible_Level6` | 6 |
+| Productividad | `MODIS_Terra_L4_LAI_8Day` | `GoogleMapsCompatible_Level8` | 8 |
+
+1. **TileMatrixSet/fechas**: resueltos leyendo `WMTSCapabilities.xml` real en vez de asumir — cada capa usa un `TileMatrixSet` distinto, confirmado. El segmento `{Time}` usa el literal `default` (no una fecha fija), que GIBS resuelve al dato más reciente publicado — evita que las URLs queden obsoletas.
+2. **URLs de tiles**: `buildGibsTileUrl()` en `nasaGibsLayers.ts`. `MapLibreField.tsx` agrega las 4 capas como `raster` sources reales (XYZ global, sin `CanvasSource` ni posicionamiento por esquinas) y alterna `visibility` al cambiar el selector, sin recrear sources.
+3. **Nubosidad/vacíos**: sin manejo especial — huecos transparentes son una limitación conocida y aceptada para la demo (YAGNI).
+4. **Attribution/leyenda**: cada `raster` source lleva su `attribution` (MapLibre la muestra en el control nativo); la leyenda SVG oficial de NASA se muestra junto al selector de capas (`FieldMap.tsx`, componente `.map-satellite-legend`). El badge "DATOS DE DEMO" del mapa se reemplazó por "NASA GIBS EN VIVO".
+5. **Verificación visual**: confirmado en navegador (Playwright) sobre el lote real en Marcos Juárez — las 4 capas cargan tiles reales sin errores 400/404 de GIBS. Precaución encontrada y corregida: sin `maxzoom` en el `raster` source, MapLibre pedía tiles a zoom 15 contra un `TileMatrixSet` que solo llega a zoom 6-9 → 400s; se fijó `maxzoom: maxNativeZoom` por fuente para que MapLibre haga over-zoom del tile ancestro en vez de pedir uno inexistente.
+
+`LayerCanvas.ts` (patchwork sintético) fue eliminado — completamente reemplazado.
+
+## 9. Humedad de suelo real (NASA POWER) y capa de límites administrativos — implementado 2026-09-12
+
+Pedido del usuario: sumar NASA POWER como fuente real de humedad de suelo (aclarando que la observación de "sin señal" de la sesión anterior era sobre la Flood API de Open-Meteo, no sobre NASA POWER), y agregar un overlay de límites político/geográficos (departamento, provincia) para ubicar mejor el lote.
+
+**Hecho:**
+- `src/services/api/soilMoistureClient.ts` + `src/hooks/useSoilMoistureData.ts`: `GWETROOT`/`GWETTOP` (humedad de raíz/superficial) de NASA POWER (`power.larc.nasa.gov`, sin auth, CORS abierto — verificado con `curl -H "Origin: ..."`), mismo patrón que `climateClient.ts`. Busca hacia atrás hasta 10 días desde `hoy - 7` (lag típico de NASA POWER) y toma el primer valor no-`-999`.
+- `SoilPanel.tsx` muestra el nuevo campo "Humedad de raíz (\<fecha\>)" + link "Verificar en NASA POWER" cuando el dato real resuelve — mismo patrón override que `ClimatePanel`. La química de suelo (pH/carbono/textura) sigue simulada; no se encontró fuente real gratuita para eso todavía.
+- `src/components/map/adminBoundaries.ts` + `public/boundaries/{marcosJuarezDepartamento,cordobaProvincia}.geojson`: polígonos reales de OpenStreetMap (vía Nominatim `lookup?...&polygon_geojson=1`, relaciones `R1994997` y `R3592494`, confirmadas por nombre/tag), bajados una sola vez y commiteados como archivos estáticos — no se vuelve a pedir a Nominatim en cada carga (respeta su política de uso).
+- `MapLibreField.tsx`: 2 `line` sources/layers nuevos, creados de forma perezosa (recién al primer toggle, no al montar el mapa — el polígono de provincia sola pesa ~300KB) y luego solo se alterna `visibility`, sin re-fetch. Toggle nuevo (ícono `LandPlot`) en `map-tools` de `FieldMap.tsx`, independiente del selector Vegetación/Sequía/Suelo/Productividad.
+- Verificado en navegador: humedad de suelo real (`44%` al 2026-09-05) visible en el panel de Suelo; boundaries fetch confirmado perezoso (0 requests hasta el primer click) y la línea de límite se ve sobre el mapa al hacer zoom out.
+
+**Pendiente / fuera de alcance de este paso:**
+- Química de suelo (pH, carbono, textura) sigue 100% simulada — no se investigó una fuente real gratuita (SoilGrids está documentado en `docs/DATA_SOURCES.md` §4 pero no se verificó en esta sesión).
+- El overlay de límites es solo departamento + provincia de Córdoba (donde está el lote demo); no es genérico para cualquier ubicación.
+- Módulo satelital de análisis real (NDVI/EVI/NDWI por píxel vía Microsoft Planetary Computer, ver investigación ya hecha y verificada en memoria de sesión) — identificado como la brecha más grande restante, todavía no implementado.
+
+## 10. NDVI real de campo (Microsoft Planetary Computer) — implementado 2026-09-12
+
+Pedido del usuario: cerrar la brecha del punto anterior — reemplazar el NDVI mock (`server/satellite/providers/mockSatellite.ts`, ~0.69) por un valor real calculado sobre la escena Sentinel-2 más reciente.
+
+**Hecho:**
+- `src/services/api/satelliteClient.ts`: `fetchRealVegetationIndex(polygon)` — búsqueda STAC real en Microsoft Planetary Computer (`sentinel-2-l2a`, nubosidad < 30%, últimos 90 días, la más reciente), firma el asset con `/api/sas/v1/sign` (sin auth, confirmado CORS abierto incluso para range requests desde el browser), y lee **solo la ventana de píxeles sobre el campo** (no la banda completa de ~190MB) vía `geotiff` (`readRasters({ window })`, en coordenadas de píxel calculadas a mano — el parámetro `bbox` de `readRasters` resultó leer el tile completo silenciosamente, verificado con un script de prueba). Reproyección WGS84→UTM de la escena vía `proj4` (Sentinel-2 no está en lat/lng).
+- `src/domain/satellite/ndvi.ts`: fórmula NDVI y `classifyNDVI` duplicados de `server/satellite/indices/ndvi.ts` (mismo texto) — no importados directamente porque `src/` y `server/` son proyectos TS separados (`tsconfig.app.json` no incluye `server/`, distinto `moduleResolution`).
+- `src/hooks/useSatelliteData.ts` + `FieldMap.tsx`: cuando la capa activa es "Vegetación", muestra "NDVI real (\<fecha de la escena\>): \<valor\> · \<clasificación en español\>" con link a la escena real en Planetary Computer, debajo de la leyenda GIBS.
+- Nuevas dependencias: `geotiff`, `proj4`.
+- Verificado con un script Node standalone (búsqueda real, firma real, lectura real de 339×174 px, NDVI medio 0.256) antes de integrarlo, y luego en navegador (sin errores de consola, valor visible y correcto).
+- **Nota real e importante**: el NDVI real (0.256, "vegetación moderada") es mucho más bajo que el mock (0.69, "sano") — la escena disponible es del 28/08/2026, que cae **entre campañas** para maíz en Argentina (post-cosecha/pre-siembra de la 2026/27), no indica un cultivo estresado. El valor va rotulado con la fecha de la escena para que el analista no lo malinterprete.
+
+**Pendiente / fuera de alcance de este paso:**
+- Solo NDVI — NDWI/EVI/droughtIndex (ya escritos en `server/satellite/indices/`) no se conectaron a datos reales todavía; mismo mecanismo, solo falta repetir el patrón.
+- No se implementó el overlay de píxeles reales sobre el mapa (reemplazar el tile GIBS de Vegetación) — decisión explícita del usuario de ir primero por el valor agregado, no por el raster completo.
+- `analyzeVegetationHealth`'s desviación histórica ("últimos 5 años") y `detectCropStage` (requiere serie temporal en la temporada) no están conectados — necesitan múltiples búsquedas STAC, no una sola.
 
 ## 6. Documentos de referencia (no duplicar, consultar directamente)
 
