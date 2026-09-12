@@ -76,10 +76,42 @@ describe('runSoilAgent', () => {
         json: async () => ({
           properties: {
             layers: [
-              { name: 'phh2o', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: 6.2 } },
-              { name: 'soc', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: 21.0 } },
-              { name: 'clay', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: 28 } },
-              { name: 'sand', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: 42 } },
+              {
+                name: 'phh2o',
+                unit_measure: { d_factor: 10, mapped_units: 'pH*10', target_units: 'pH' },
+                depths: [
+                  { label: '0-5cm', values: { mean: 62 } },
+                  { label: '5-15cm', values: { mean: 62 } },
+                  { label: '15-30cm', values: { mean: 62 } },
+                ],
+              },
+              {
+                name: 'soc',
+                unit_measure: { d_factor: 10, mapped_units: 'dg/kg', target_units: 'g/kg' },
+                depths: [
+                  { label: '0-5cm', values: { mean: 210 } },
+                  { label: '5-15cm', values: { mean: 210 } },
+                  { label: '15-30cm', values: { mean: 210 } },
+                ],
+              },
+              {
+                name: 'clay',
+                unit_measure: { d_factor: 10, mapped_units: 'g/kg', target_units: '%' },
+                depths: [
+                  { label: '0-5cm', values: { mean: 280 } },
+                  { label: '5-15cm', values: { mean: 280 } },
+                  { label: '15-30cm', values: { mean: 280 } },
+                ],
+              },
+              {
+                name: 'sand',
+                unit_measure: { d_factor: 10, mapped_units: 'g/kg', target_units: '%' },
+                depths: [
+                  { label: '0-5cm', values: { mean: 420 } },
+                  { label: '5-15cm', values: { mean: 420 } },
+                  { label: '15-30cm', values: { mean: 420 } },
+                ],
+              },
             ],
           },
         }),
@@ -111,10 +143,42 @@ describe('runSoilAgent', () => {
       json: async () => ({
         properties: {
           layers: [
-            { name: 'phh2o', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: 6.2 } },
-            { name: 'soc', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: 21.0 } },
-            { name: 'clay', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: 28 } },
-            { name: 'sand', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: 42 } },
+            {
+              name: 'phh2o',
+              unit_measure: { d_factor: 10, mapped_units: 'pH*10', target_units: 'pH' },
+              depths: [
+                { label: '0-5cm', values: { mean: 62 } },
+                { label: '5-15cm', values: { mean: 62 } },
+                { label: '15-30cm', values: { mean: 62 } },
+              ],
+            },
+            {
+              name: 'soc',
+              unit_measure: { d_factor: 10, mapped_units: 'dg/kg', target_units: 'g/kg' },
+              depths: [
+                { label: '0-5cm', values: { mean: 210 } },
+                { label: '5-15cm', values: { mean: 210 } },
+                { label: '15-30cm', values: { mean: 210 } },
+              ],
+            },
+            {
+              name: 'clay',
+              unit_measure: { d_factor: 10, mapped_units: 'g/kg', target_units: '%' },
+              depths: [
+                { label: '0-5cm', values: { mean: 280 } },
+                { label: '5-15cm', values: { mean: 280 } },
+                { label: '15-30cm', values: { mean: 280 } },
+              ],
+            },
+            {
+              name: 'sand',
+              unit_measure: { d_factor: 10, mapped_units: 'g/kg', target_units: '%' },
+              depths: [
+                { label: '0-5cm', values: { mean: 420 } },
+                { label: '5-15cm', values: { mean: 420 } },
+                { label: '15-30cm', values: { mean: 420 } },
+              ],
+            },
           ],
         },
       }),
@@ -136,10 +200,42 @@ describe('runSoilAgent', () => {
         json: async () => ({
           properties: {
             layers: [
-              { name: 'phh2o', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: null } },
-              { name: 'soc', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: null } },
-              { name: 'clay', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: null } },
-              { name: 'sand', depth: { top: 0, bottom: 30, unit: 'cm' }, values: { mean: null } },
+              {
+                name: 'phh2o',
+                unit_measure: { d_factor: 10, mapped_units: 'pH*10', target_units: 'pH' },
+                depths: [
+                  { label: '0-5cm', values: { mean: null } },
+                  { label: '5-15cm', values: { mean: null } },
+                  { label: '15-30cm', values: { mean: null } },
+                ],
+              },
+              {
+                name: 'soc',
+                unit_measure: { d_factor: 10, mapped_units: 'dg/kg', target_units: 'g/kg' },
+                depths: [
+                  { label: '0-5cm', values: { mean: null } },
+                  { label: '5-15cm', values: { mean: null } },
+                  { label: '15-30cm', values: { mean: null } },
+                ],
+              },
+              {
+                name: 'clay',
+                unit_measure: { d_factor: 10, mapped_units: 'g/kg', target_units: '%' },
+                depths: [
+                  { label: '0-5cm', values: { mean: null } },
+                  { label: '5-15cm', values: { mean: null } },
+                  { label: '15-30cm', values: { mean: null } },
+                ],
+              },
+              {
+                name: 'sand',
+                unit_measure: { d_factor: 10, mapped_units: 'g/kg', target_units: '%' },
+                depths: [
+                  { label: '0-5cm', values: { mean: null } },
+                  { label: '5-15cm', values: { mean: null } },
+                  { label: '15-30cm', values: { mean: null } },
+                ],
+              },
             ],
           },
         }),

@@ -82,7 +82,8 @@ export async function runNewsAgent(input: AgentInput): Promise<NewsAgentResult> 
       alerts: buildNewsAlerts({ avgSentiment, negativeShare, articleCount: articles.length }),
       sources: [{ provider: 'GDELT', endpoint: url, lastUpdated: new Date().toISOString(), reliability: 0.7 }],
     };
-  } catch {
+  } catch (err) {
+    console.warn('[news] GDELT fetch failed, falling back to mock:', err instanceof Error ? err.message : err);
     return { ...newsMock, timestamp: new Date().toISOString() };
   }
 }

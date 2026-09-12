@@ -106,7 +106,8 @@ export async function runClimateAgent(input: AgentInput): Promise<ClimateAgentRe
       alerts: buildClimateAlerts(data),
       sources: [{ provider: 'Open-Meteo', endpoint: url, lastUpdated: new Date().toISOString(), reliability: 0.9 }],
     };
-  } catch {
+  } catch (err) {
+    console.warn('[climate] Open-Meteo fetch failed, falling back to mock:', err instanceof Error ? err.message : err);
     return { ...climateMock, timestamp: new Date().toISOString() };
   }
 }
