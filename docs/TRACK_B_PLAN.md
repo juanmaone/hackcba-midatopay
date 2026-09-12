@@ -317,6 +317,80 @@ Track A (el otro developer, mismo repo) completó su plan de 13 tareas (`docs/su
 - Evento WebSocket `scenario-changed` — no implementado, solo `score-updated`/`alert-triggered`.
 - Badge dinámico "real vs. sintético" en la UI — `App.tsx` no distingue hoy una respuesta real del backend de un fallback a `mockAssessmentResponse.ts`; el badge "CASO SINTÉTICO" queda estático independientemente del origen del dato.
 
+## 12. Expansión de Tarea 11 a funcionalidad real — implementado 2026-09-12
+
+Pedido del usuario: la Tarea 11 original (sidebar disabled/"coming soon") ya estaba completa, pero
+el usuario pidió ir más allá del alcance original — convertir al menos uno de los 5 items muertos
+del sidebar en una página real, y de paso reportó 2 bugs concretos encontrados usando la app:
+el link "Verificar en NASA POWER" no abría el mapa en el lote correcto, y la barra de "Exposición
+recomendada" no era interactiva pese a parecer un slider.
+
+**Hecho (en este orden, por prioridad acordada con el usuario):**
+
+1. **Link de NASA POWER corregido** (`src/services/api/soilMoistureClient.ts`): verificado en vivo
+   (Playwright) que el Data Access Viewer de NASA POWER (`data-access-viewer/`) ignora por completo
+   los query params de lat/lng — probado con `latitude`/`longitude`, `center`, `level`,
+   `userCommunity`, siempre abre centrado en EE.UU./Canadá. No es bug nuestro: esa app solo acepta
+   ubicación por click manual en el mapa, no soporta deep-link. El link ahora apunta al endpoint
+   crudo de la API (`power.larc.nasa.gov/api/temporal/daily/point?...`), el mismo que ya se
+   consulta — devuelve el JSON real para las coordenadas exactas del lote, verificado en vivo.
+
+2. **Slider de exposición interactivo** (`CreditDecision.tsx` + `App.tsx`): la barra
+   `exposure-bar` era un `<div>` puramente visual. Ahora tiene un `<input type="range">` real
+   superpuesto (invisible, sobre el track visual existente) que controla `requestedAmount` en
+   `App.tsx`, recalculado en vivo vía la nueva `calculateScenario()` y propagado a
+   `ScoreSummary`/`CreditDecision`/`InsightCard`. Verificado en vivo: arrastrar a ARS 30M
+   recalcula DSCR 1.58x→5.26x y exposición en tiempo real.
+
+3. **Constructor de escenarios real** (`src/components/scenarios/ScenarioBuilder.tsx`, nuevo):
+   página completa con sliders continuos de caída de rendimiento/precio (0-50%, más granular que
+   los 4 escenarios fijos de `StressTest`), 4 presets que replican esos mismos escenarios, inputs
+   de monto/plazo, y panel de resultado en vivo (AgroScore, DSCR, exposición, riesgo) reusando el
+   lenguaje visual de `StressTest`. Navegación real agregada: `App.tsx` gana un estado
+   `view: 'resumen' | 'escenarios'`, `Sidebar.tsx` gana `activeView`/`onNavigate` — el botón
+   "Constructor de escenarios" ya no está `disabled`. Los otros 4 items del sidebar (Portafolio,
+   Monitoreo, Biblioteca de evidencia, Configuración) siguen "PRONTO" — fuera de alcance de este
+   pedido, el usuario solo pidió expandir uno.
+
+**Bugs de fórmula encontrados y corregidos al construir `calculateScenario()`** (nueva función en
+`src/domain/scoring/calculations.ts`, duplicado cliente de `server/engine/stressScenarios.ts` +
+`riskSynthesis.ts` — mismo patrón ya documentado que `src/domain/satellite/ndvi.ts`). Se
+verificó contra los números golden de `server/engine/stressScenarios.test.ts`/`riskSynthesis.test.ts`
+(mismo input, mismo resultado esperado) en vez de inventar casos de prueba nuevos — eso expuso:
+
+- El costo operativo debe calcularse sobre el ingreso **sin estrés** (base), no sobre el ingreso
+  ya estresado — el servidor lo calcula una sola vez fuera del loop por escenario. La primera
+  versión de `calculateScenario` lo recalculaba por escenario, dando DSCR incorrecto para
+  `price`/`combined` (detectado porque el test cruzado contra el server fallaba).
+- `calculateRecommendedExposure` (ya existente en `calculations.ts`, no nueva) le faltaba el
+  clamp inferior a 0 que sí tiene su equivalente server — un DSCR negativo (estrés severo)
+  producía exposición recomendada **negativa**. Bug latente preexistente, nunca disparado por los
+  4 escenarios estáticos del demo (ninguno tiene DSCR negativo), pero sí por cualquier estrés real
+  vía el constructor. Corregido con el mismo `Math.max(0, ...)` que ya tiene el server.
+
+Tests nuevos: `src/domain/scoring/calculations.test.ts` — pinan `calculateScenario` contra los
+4 resultados golden de `stressScenarios.test.ts` (base/drought/price/combined), más un caso que
+verifica que cambiar solo el monto solicitado mueve DSCR/exposición pero nunca el AgroScore.
+
+**Verificado en esta sesión:**
+- `npm run test`: 73/73 tests pasan (68 previos + 5 nuevos).
+- `npx tsc -b --noEmit`: limpio.
+- `npm run lint`: limpio.
+- En navegador (Playwright) contra la app real corriendo (`npm run dev:all`): los 3 items
+  verificados en vivo, incluyendo que el preset "CASO BASE" del constructor reproduce exactamente
+  el AgroScore (69) y DSCR base (0.77x) reales que muestra el panel Resumen — no son números de
+  mock, vienen de la respuesta real de `POST /api/assessment` en el estado actual del caso.
+
+**Pendiente / fuera de alcance de este paso** (pedido explícitamente por el usuario, no implementado aún):
+
+- **Segundo caso de uso real**: el usuario pidió un lote real adicional con parámetros distintos
+  (productor/campo/cultivo diferente) para tener más de un caso navegable. Requiere elegir un lote
+  real (OSM u otra fuente verificable, mismo estándar que el lote actual — ver §7 "Lote agrícola
+  real"), y decidir si es un producer/CUIT distinto o el mismo con otro campo. No arrancado —
+  necesita su propia conversación de alcance antes de implementar.
+- Portafolio, Monitoreo, Biblioteca de evidencia, Configuración: siguen como placeholders
+  "PRONTO" — no fueron parte de este pedido (el usuario priorizó Constructor de escenarios).
+
 ## 6. Documentos de referencia (no duplicar, consultar directamente)
 
 - `docs/SATELLITE_MODULE.md` — módulo satelital completo (interfaces, fórmulas, mocks).

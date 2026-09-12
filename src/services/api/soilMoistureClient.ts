@@ -57,6 +57,12 @@ export async function fetchRealSoilMoisture(lat: number, lng: number): Promise<R
     rootZoneWetness: GWETROOT[latestDate],
     surfaceWetness: GWETTOP[latestDate],
     asOfDate: toIsoDate(latestDate),
-    sourceUrl: `https://power.larc.nasa.gov/data-access-viewer/?parameters=GWETROOT,GWETTOP&community=AG&longitude=${lng}&latitude=${lat}`,
+    // NASA POWER's Data Access Viewer (data-access-viewer/) does not honor lat/lng query params —
+    // verified live, it always opens centered on North America regardless of any param combination
+    // tried (latitude/longitude, center, level, userCommunity). It only accepts a location via a
+    // manual map click, so it can't be deep-linked. Point at the raw API endpoint instead — the
+    // same one queried above, returning the exact real JSON for these coordinates: a genuine,
+    // location-correct verification link instead of a map that silently ignores the location.
+    sourceUrl: `${POWER_URL}?${params.toString()}`,
   };
 }
